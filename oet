@@ -1,0 +1,398 @@
+classdef Tracker < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                        matlab.ui.Figure
+        ShipTypeDropDown                matlab.ui.control.DropDown
+        ShipTypeDropDownLabel           matlab.ui.control.Label
+        HoursUnderwayhEditField_2       matlab.ui.control.NumericEditField
+        HoursUnderwayhEditField_2Label  matlab.ui.control.Label
+        NOxEmissiontonsEditField        matlab.ui.control.NumericEditField
+        NOxEmissiontonsEditFieldLabel   matlab.ui.control.Label
+        PMEmissiontonsEditField         matlab.ui.control.NumericEditField
+        PMEmissiontonsEditFieldLabel    matlab.ui.control.Label
+        Image                           matlab.ui.control.Image
+        EngineTierDropDown              matlab.ui.control.DropDown
+        EngineTierDropDownLabel         matlab.ui.control.Label
+        COEmissiontonsEditField         matlab.ui.control.NumericEditField
+        COEmissiontonsEditFieldLabel    matlab.ui.control.Label
+        N2OEmissiontonsEditField        matlab.ui.control.NumericEditField
+        N2OEmissiontonsEditFieldLabel   matlab.ui.control.Label
+        EngineTypeDropDown              matlab.ui.control.DropDown
+        EngineTypeDropDownLabel         matlab.ui.control.Label
+        CH4EmissiontonsEditField        matlab.ui.control.NumericEditField
+        CH4EmissiontonsEditFieldLabel   matlab.ui.control.Label
+        SOxEmissiontonsEditField        matlab.ui.control.NumericEditField
+        SOxEmissiontonsLabel            matlab.ui.control.Label
+        OceanEmissionsTrackerLabel      matlab.ui.control.Label
+    end
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Callback function: CO2EmissiontonsEditField,
+        % EstimateEmisionsButton
+        function CalcButtonPushed(app, event)
+           
+            power = app.MainEnginePowerkWEditField.Value;
+            fc = app.FuelQuantityTonEditField.Value;
+            time = app.EngineSpeedrpmEditField.Value;
+            speed = app.EngineSpeedrpmEditField.Value;
+
+          switch app.EngineTierDropDown.Value
+                   case 'Tier 1'
+                        EFe = 45*((speed)^-0.2);
+                        nox = (power*time*EFe)/1e6;
+                        app.NOxEmissiontonsEditField.Value = nox;
+                    case 'Tier 2'
+                        EFe = 44*((speed)^-0.23);
+                         nox = (power*time*EFe)/1e6;
+                        app.NOxEmissiontonsEditField.Value = nox;
+                    case 'Tier 3'
+                        EFe = 9*((speed)^-0.2);
+                        nox = (power*time*EFe)/1e6;
+                        app.NOxEmissiontonsEditField.Value = nox;
+                    otherwise
+                        error('Invalid tier specified');
+                                             
+        end
+            switch app.FuelTypeDropDown.Value
+                case 'MGO/MDO'
+                    pm = 0.00097*fc;
+                    app.PMEmissiontonsEditField.Value=pm;
+                case 'HFO'
+                   pm = 0.00728*fc;
+                    app.PMEmissiontonsEditField.Value=pm;
+                case 'LNG'
+                    pm = 0.00018*fc;
+                    app.PMEmissiontonsEditField.Value=pm;
+            end
+
+            switch app.FuelTypeDropDown.Value
+                case 'MGO/MDO'
+                    co2 = 3.206*fc;
+                    app.CO2EmissiontonsEditField.Value=co2;
+                case 'HFO'
+                   co2 = 3.114*fc;
+                    app.CO2EmissiontonsEditField.Value=co2;
+                case 'LNG'
+                    co2 = 2.75*fc;
+                    app.CO2EmissiontonsEditField.Value=co2;
+            end
+
+             switch app.FuelTypeDropDown.Value
+                case 'MGO/MDO'
+                    sox = 2*0.97753*0.07*fc;
+                    app.SOxEmissiontonsEditField.Value=sox;
+                case 'HFO'
+                   sox = 2*0.97753*2.6*fc;
+                    app.SOxEmissiontonsEditField.Value=sox;
+                case 'LNG'
+                    sox = 8.29e-4*2*0.97753*fc;
+                    app.SOxEmissiontonsEditField.Value=sox;
+             end
+
+              switch app.FuelTypeDropDown.Value
+                case 'MGO/MDO'
+                    ch4 = 0.00006*fc;
+                    app.CH4EmissiontonsEditField.Value=ch4;
+                case 'HFO'
+                   ch4 = 0.00006*fc;
+                    app.CH4EmissiontonsEditField.Value=ch4;
+                case 'LNG'
+                    ch4 = 0.05*fc;
+                    app.CH4EmissiontonsEditField.Value=ch4;
+              end
+              switch app.FuelTypeDropDown.Value
+                case 'MGO/MDO'
+                    n2o = 0.00016*fc;
+                    app.N2OEmissiontonsEditField.Value=n2o;
+                case 'HFO'
+                   n2o = 0.00015*fc;
+                    app.N2OEmissiontonsEditField.Value=n2o;
+                case 'LNG'
+                    n2o = 0.000108*fc;
+                    app.N2OEmissiontonsEditField.Value=n2o;
+              end
+              switch app.FuelTypeDropDown.Value
+                case 'MGO/MDO'
+                    co = 0.00277*fc;
+                    app.COEmissiontonsEditField.Value=co;
+                case 'HFO'
+                   co = 0.00277*fc;
+                    app.COEmissiontonsEditField.Value=co;
+                case 'LNG'
+                    co = 0.00783*fc;
+                    app.COEmissiontonsEditField.Value=co;
+              end
+
+               % Gather all emissions data and labels
+emissions = [
+    app.PMEmissiontonsEditField.Value,
+    app.CH4EmissiontonsEditField.Value,
+    app.N2OEmissiontonsEditField.Value,
+    app.COEmissiontonsEditField.Value,
+    app.NOxEmissiontonsEditField.Value  
+];
+emissions_labels = {'PM', 'CH4', 'N2O', 'CO', 'NOx'};
+
+% Clear existing plots
+cla(app.UIAxes);
+
+% Plot the non-CO2/SOx emissions as a bar chart on the primary y-axis
+yyaxis(app.UIAxes, 'left');
+bar(app.UIAxes, 1:5, emissions, 'b'); % Use blue for these emissions
+ylabel(app.UIAxes, 'Emissions (tons)');
+
+% Plot the CO2 and SOx emissions on the secondary y-axis
+yyaxis(app.UIAxes, 'right');
+hold(app.UIAxes, 'on'); % Retain the current plot when adding new plots
+sox_co2_emissions = [app.SOxEmissiontonsEditField.Value, app.CO2EmissiontonsEditField.Value];
+bar(app.UIAxes, 6:7, sox_co2_emissions, 'r'); % Use red for CO2 and SOx
+ylabel(app.UIAxes, 'CO2 and SOx Emissions (tons)');
+
+% Update x-axis tick labels to include CO2 and SOx
+xlabels = [emissions_labels, {'SOx', 'CO2'}];
+set(app.UIAxes, 'XTick', 1:7, 'XTickLabel', xlabels);
+
+% Set x-axis label
+xlabel(app.UIAxes, 'Emission Types');
+
+        
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Color = [0.302 0.7451 0.9333];
+            app.UIFigure.Position = [100 100 640 480];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.UIFigure);
+            title(app.UIAxes, 'Ocean Emissions Estimation')
+            ylabel(app.UIAxes, 'Emissions (tons)')
+            zlabel(app.UIAxes, 'Z')
+            app.UIAxes.Position = [328 32 288 256];
+
+            % Create MainEnginePowerkWEditFieldLabel
+            app.MainEnginePowerkWEditFieldLabel = uilabel(app.UIFigure);
+            app.MainEnginePowerkWEditFieldLabel.HorizontalAlignment = 'right';
+            app.MainEnginePowerkWEditFieldLabel.Position = [32 420 138 22];
+            app.MainEnginePowerkWEditFieldLabel.Text = 'Main Engine Power (kW)';
+
+            % Create MainEnginePowerkWEditField
+            app.MainEnginePowerkWEditField = uieditfield(app.UIFigure, 'numeric');
+            app.MainEnginePowerkWEditField.Position = [185 420 120 20];
+
+            % Create FuelQuantityTonEditFieldLabel
+            app.FuelQuantityTonEditFieldLabel = uilabel(app.UIFigure);
+            app.FuelQuantityTonEditFieldLabel.HorizontalAlignment = 'right';
+            app.FuelQuantityTonEditFieldLabel.Position = [32 390 137 22];
+            app.FuelQuantityTonEditFieldLabel.Text = 'Fuel Quantity (Ton)';
+
+            % Create FuelQuantityTonEditField
+            app.FuelQuantityTonEditField = uieditfield(app.UIFigure, 'numeric');
+            app.FuelQuantityTonEditField.Position = [185 390 120 20];
+
+            % Create EstimateEmisionsButton
+            app.EstimateEmisionsButton = uibutton(app.UIFigure, 'push');
+            app.EstimateEmisionsButton.ButtonPushedFcn = createCallbackFcn(app, @CalcButtonPushed, true);
+            app.EstimateEmisionsButton.BackgroundColor = [0 1 1];
+            app.EstimateEmisionsButton.FontName = 'Book Antiqua';
+            app.EstimateEmisionsButton.FontSize = 14;
+            app.EstimateEmisionsButton.FontWeight = 'bold';
+            app.EstimateEmisionsButton.FontColor = [0 0 1];
+            app.EstimateEmisionsButton.Position = [118 273 211 25];
+            app.EstimateEmisionsButton.Text = 'Estimate Emisions';
+
+            % Create EngineSpeedrpmEditFieldLabel
+            app.EngineSpeedrpmEditFieldLabel = uilabel(app.UIFigure);
+            app.EngineSpeedrpmEditFieldLabel.HorizontalAlignment = 'right';
+            app.EngineSpeedrpmEditFieldLabel.Position = [32 360 139 22];
+            app.EngineSpeedrpmEditFieldLabel.Text = 'Engine Speed (rpm)';
+
+            % Create EngineSpeedrpmEditField
+            app.EngineSpeedrpmEditField = uieditfield(app.UIFigure, 'numeric');
+            app.EngineSpeedrpmEditField.Position = [185 360 120 20];
+
+            % Create CO2EmissiontonsEditFieldLabel
+            app.CO2EmissiontonsEditFieldLabel = uilabel(app.UIFigure);
+            app.CO2EmissiontonsEditFieldLabel.HorizontalAlignment = 'right';
+            app.CO2EmissiontonsEditFieldLabel.Position = [94 205 116 22];
+            app.CO2EmissiontonsEditFieldLabel.Text = 'CO2 Emission (tons)';
+
+            % Create CO2EmissiontonsEditField
+            app.CO2EmissiontonsEditField = uieditfield(app.UIFigure, 'numeric');
+            app.CO2EmissiontonsEditField.ValueChangedFcn = createCallbackFcn(app, @CalcButtonPushed, true);
+            app.CO2EmissiontonsEditField.Position = [225 205 80 20];
+
+            % Create FuelTypeDropDownLabel
+            app.FuelTypeDropDownLabel = uilabel(app.UIFigure);
+            app.FuelTypeDropDownLabel.HorizontalAlignment = 'right';
+            app.FuelTypeDropDownLabel.Position = [356 420 57 22];
+            app.FuelTypeDropDownLabel.Text = 'Fuel Type';
+
+            % Create FuelTypeDropDown
+            app.FuelTypeDropDown = uidropdown(app.UIFigure);
+            app.FuelTypeDropDown.Items = {'MGO/MDO', 'HFO', 'LNG'};
+            app.FuelTypeDropDown.Position = [428 420 120 20];
+            app.FuelTypeDropDown.Value = 'MGO/MDO';
+
+            % Create OceanEmissionsTrackerLabel
+            app.OceanEmissionsTrackerLabel = uilabel(app.UIFigure);
+            app.OceanEmissionsTrackerLabel.BackgroundColor = [1 1 0];
+            app.OceanEmissionsTrackerLabel.HorizontalAlignment = 'center';
+            app.OceanEmissionsTrackerLabel.FontName = 'Century Gothic';
+            app.OceanEmissionsTrackerLabel.FontSize = 18;
+            app.OceanEmissionsTrackerLabel.FontWeight = 'bold';
+            app.OceanEmissionsTrackerLabel.Position = [196 456 281 24];
+            app.OceanEmissionsTrackerLabel.Text = 'Ocean Emissions Tracker';
+
+            % Create SOxEmissiontonsLabel
+            app.SOxEmissiontonsLabel = uilabel(app.UIFigure);
+            app.SOxEmissiontonsLabel.HorizontalAlignment = 'right';
+            app.SOxEmissiontonsLabel.Position = [97 172 114 22];
+            app.SOxEmissiontonsLabel.Text = 'SOx Emission (tons)';
+
+            % Create SOxEmissiontonsEditField
+            app.SOxEmissiontonsEditField = uieditfield(app.UIFigure, 'numeric');
+            app.SOxEmissiontonsEditField.Position = [226 172 80 20];
+
+            % Create CH4EmissiontonsEditFieldLabel
+            app.CH4EmissiontonsEditFieldLabel = uilabel(app.UIFigure);
+            app.CH4EmissiontonsEditFieldLabel.HorizontalAlignment = 'right';
+            app.CH4EmissiontonsEditFieldLabel.Position = [95 140 115 22];
+            app.CH4EmissiontonsEditFieldLabel.Text = 'CH4 Emission (tons)';
+
+            % Create CH4EmissiontonsEditField
+            app.CH4EmissiontonsEditField = uieditfield(app.UIFigure, 'numeric');
+            app.CH4EmissiontonsEditField.Position = [225 140 80 20];
+
+            % Create EngineTypeDropDownLabel
+            app.EngineTypeDropDownLabel = uilabel(app.UIFigure);
+            app.EngineTypeDropDownLabel.HorizontalAlignment = 'right';
+            app.EngineTypeDropDownLabel.Position = [341 389 72 22];
+            app.EngineTypeDropDownLabel.Text = 'Engine Type';
+
+            % Create EngineTypeDropDown
+            app.EngineTypeDropDown = uidropdown(app.UIFigure);
+            app.EngineTypeDropDown.Items = {'Slow-Speed Diesel Engine', 'Medium-Speed DIesel Engine', 'High-Speed Diesel Engine', 'Steam Turbine'};
+            app.EngineTypeDropDown.Position = [428 389 120 20];
+            app.EngineTypeDropDown.Value = 'Slow-Speed Diesel Engine';
+
+            % Create N2OEmissiontonsEditFieldLabel
+            app.N2OEmissiontonsEditFieldLabel = uilabel(app.UIFigure);
+            app.N2OEmissiontonsEditFieldLabel.HorizontalAlignment = 'right';
+            app.N2OEmissiontonsEditFieldLabel.Position = [94 105 116 22];
+            app.N2OEmissiontonsEditFieldLabel.Text = 'N2O Emission (tons)';
+
+            % Create N2OEmissiontonsEditField
+            app.N2OEmissiontonsEditField = uieditfield(app.UIFigure, 'numeric');
+            app.N2OEmissiontonsEditField.Position = [225 105 80 20];
+
+            % Create COEmissiontonsEditFieldLabel
+            app.COEmissiontonsEditFieldLabel = uilabel(app.UIFigure);
+            app.COEmissiontonsEditFieldLabel.HorizontalAlignment = 'right';
+            app.COEmissiontonsEditFieldLabel.Position = [102 72 109 22];
+            app.COEmissiontonsEditFieldLabel.Text = 'CO Emission (tons)';
+
+            % Create COEmissiontonsEditField
+            app.COEmissiontonsEditField = uieditfield(app.UIFigure, 'numeric');
+            app.COEmissiontonsEditField.Position = [226 72 80 20];
+
+            % Create EngineTierDropDownLabel
+            app.EngineTierDropDownLabel = uilabel(app.UIFigure);
+            app.EngineTierDropDownLabel.HorizontalAlignment = 'right';
+            app.EngineTierDropDownLabel.Position = [347 359 66 22];
+            app.EngineTierDropDownLabel.Text = 'Engine Tier';
+
+            % Create EngineTierDropDown
+            app.EngineTierDropDown = uidropdown(app.UIFigure);
+            app.EngineTierDropDown.Items = {'Tier 1', 'Tier 2', 'Tier 3'};
+            app.EngineTierDropDown.Position = [428 360 120 20];
+            app.EngineTierDropDown.Value = 'Tier 1';
+
+            % Create Image
+            app.Image = uiimage(app.UIFigure);
+            app.Image.Position = [576 420 51 60];
+            app.Image.ImageSource = 'logo korporat-01.png';
+
+            % Create PMEmissiontonsEditFieldLabel
+            app.PMEmissiontonsEditFieldLabel = uilabel(app.UIFigure);
+            app.PMEmissiontonsEditFieldLabel.HorizontalAlignment = 'right';
+            app.PMEmissiontonsEditFieldLabel.Position = [102 234 109 22];
+            app.PMEmissiontonsEditFieldLabel.Text = 'PM Emission (tons)';
+
+            % Create PMEmissiontonsEditField
+            app.PMEmissiontonsEditField = uieditfield(app.UIFigure, 'numeric');
+            app.PMEmissiontonsEditField.Position = [226 234 80 20];
+
+            % Create NOxEmissiontonsEditFieldLabel
+            app.NOxEmissiontonsEditFieldLabel = uilabel(app.UIFigure);
+            app.NOxEmissiontonsEditFieldLabel.HorizontalAlignment = 'right';
+            app.NOxEmissiontonsEditFieldLabel.Position = [95 42 115 22];
+            app.NOxEmissiontonsEditFieldLabel.Text = 'NOx Emission (tons)';
+
+            % Create NOxEmissiontonsEditField
+            app.NOxEmissiontonsEditField = uieditfield(app.UIFigure, 'numeric');
+            app.NOxEmissiontonsEditField.Position = [225 42 80 20];
+
+            % Create HoursUnderwayhEditField_2Label
+            app.HoursUnderwayhEditField_2Label = uilabel(app.UIFigure);
+            app.HoursUnderwayhEditField_2Label.HorizontalAlignment = 'right';
+            app.HoursUnderwayhEditField_2Label.Position = [32 330 139 22];
+            app.HoursUnderwayhEditField_2Label.Text = 'Hours Underway (h)';
+
+            % Create HoursUnderwayhEditField_2
+            app.HoursUnderwayhEditField_2 = uieditfield(app.UIFigure, 'numeric');
+            app.HoursUnderwayhEditField_2.Position = [185 330 120 20];
+
+            % Create ShipTypeDropDownLabel
+            app.ShipTypeDropDownLabel = uilabel(app.UIFigure);
+            app.ShipTypeDropDownLabel.HorizontalAlignment = 'right';
+            app.ShipTypeDropDownLabel.Position = [354 331 58 22];
+            app.ShipTypeDropDownLabel.Text = 'Ship Type';
+
+            % Create ShipTypeDropDown
+            app.ShipTypeDropDown = uidropdown(app.UIFigure);
+            app.ShipTypeDropDown.Items = {'Bulk Carrier', 'Containership', 'General cargo ship', 'LNG carrier', 'Ro-ro cargo ship (vehicle carrier)', 'Tanker', 'Others'};
+            app.ShipTypeDropDown.Position = [427 330 120 20];
+            app.ShipTypeDropDown.Value = 'Bulk Carrier';
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = Tracker
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
